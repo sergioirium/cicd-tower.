@@ -1,7 +1,7 @@
 variables:
   LAUNCH_TOWER_JOB: tower-cli job launch --monitor --insecure
   TOWER_CREDENTIALS: -u admin -p ansibleWS -h student11.409e.rhdemo.io
-  GIT_REPO: https://<student_id>:ansible@gitlab.com/<student_id>/cicd-tower.git
+  GIT_REPO: https://github.com/sergioirium/cicd-tower..git
 
 before_script:
   - apt-get update -qy
