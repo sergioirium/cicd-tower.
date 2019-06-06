@@ -1,0 +1,40 @@
+---
+- name: Implement a basic webserver
+  hosts: webservers
+  vars:
+    packages:
+      - httpd
+      - httpd-devel
+
+  tasks:
+    - name: Install the webserver software
+      yum:
+        name: "{{packages}}"
+        state: installed
+
+    - name: Start and persistently enabled httpd
+      service:
+        name: httpd
+        enabled: true
+        state: started
+
+    - name: Open the port in the firewall
+      firewall:
+        service: http
+        state: enabled
+        immediate: true
+        permanent: true
+
+    - copy:
+        content: "Hello world, v1.0\n"
+        dest: /var/www/html/index.html
+
+    - name: Smoke Test
+      uri:
+        url: "http://{{ inventory_hostname }}"
+        return_content: yes
+        status_code: 200
+      register: response
+      delegate_to: localhost
+      become: no
+      failed_when: '"Hello World" not in response.content'
