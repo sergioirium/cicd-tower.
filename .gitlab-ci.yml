@@ -1,0 +1,58 @@
+variables:
+  LAUNCH_TOWER_JOB: tower-cli job launch --monitor --insecure
+  TOWER_CREDENTIALS: -u admin -p ansibleWS -h student11.409e.rhdemo.io
+  GIT_REPO: https://<student_id>:ansible@gitlab.com/<student_id>/cicd-tower.git
+
+before_script:
+  - apt-get update -qy
+  - apt-get install -y python-dev python-pip
+  - git submodule update --init
+  - pip install --upgrade ansible ansible-lint ansible-tower-cli
+  - ansible --version
+  - ansible-lint --version
+
+stages:
+  - lint
+  - deploy
+  - auto_merge
+
+# First stage; all branches
+syntax check and linting:
+  stage: lint
+  script:
+    - if ls *.yml; then true; else echo "No playbooks found!"; exit 1; fi
+    - ansible-lint *.yml
+
+#Second stage; only dev branch
+launch test job:
+  stage: deploy
+  script:
+    - tower-cli config verify_ssl false
+    - $LAUNCH_TOWER_JOB $TOWER_CREDENTIALS -J "Deploy Test Webservers"
+    - echo $?
+  only:
+    - dev
+
+#Second stage; only the master branch
+launch prod job:
+  stage: deploy
+  script:
+    - tower-cli config verify_ssl false
+    - $LAUNCH_TOWER_JOB $TOWER_CREDENTIALS -J "Deploy Prod Webservers"
+    - echo $?
+  only:
+    - master
+
+#Third stage; only applies to the dev branch
+push to master:
+  stage: auto_merge
+  script:
+    - git config --global user.email "student@redhat.com"
+    - git config --global user.name "Student"
+    - git remote set-url origin $GIT_REPO
+    - git checkout dev && git pull
+    - git checkout master && git pull
+    - git merge --no-ff dev
+    - git push origin master
+  only:
+    - dev
